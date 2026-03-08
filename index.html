@@ -3,10 +3,128 @@
 <head>
 
 <meta charset="UTF-8">
-<title>DracinaVIP</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<link rel="stylesheet" href="style.css">
+<title>DracinaVIP</title>
+
+<style>
+
+body{
+margin:0;
+background:#0b0b0b;
+color:white;
+font-family:Arial;
+}
+
+header{
+display:flex;
+align-items:center;
+padding:15px;
+gap:10px;
+}
+
+.logo{
+font-weight:bold;
+font-size:22px;
+color:#ffd54a;
+}
+
+.search{
+margin-left:auto;
+font-size:20px;
+}
+
+.vip{
+border:2px solid #ffd54a;
+border-radius:50px;
+padding:5px 10px;
+font-size:12px;
+}
+
+.tabs{
+display:flex;
+gap:10px;
+padding:10px;
+}
+
+.tab{
+padding:8px 15px;
+border-radius:20px;
+background:#1c1c1c;
+}
+
+.tab.active{
+background:#ffd54a;
+color:black;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:15px;
+padding:15px;
+}
+
+.card{
+background:#111;
+border-radius:15px;
+overflow:hidden;
+position:relative;
+}
+
+.card img{
+width:100%;
+height:220px;
+object-fit:cover;
+}
+
+.badge{
+position:absolute;
+top:10px;
+right:10px;
+background:black;
+padding:3px 6px;
+font-size:12px;
+border-radius:6px;
+border:1px solid gold;
+}
+
+.title{
+padding:8px;
+font-size:14px;
+}
+
+.bottom{
+position:fixed;
+bottom:0;
+width:100%;
+background:#111;
+display:flex;
+justify-content:space-around;
+padding:10px 0;
+}
+
+.bottom div{
+text-align:center;
+font-size:12px;
+}
+
+.player{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+display:none;
+}
+
+video{
+width:100%;
+height:100%;
+}
+
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -16,49 +134,111 @@
 
 <header>
 
-<div class="logo">DRACINAVIP</div>
+<div class="logo">DRACINA<span style="color:white">VIP</span></div>
 
-<nav>
+<div class="search">🔍</div>
 
-<div onclick="home()">Home</div>
-<div onclick="explore()">Explore</div>
-<div onclick="openSearch()">Search</div>
-<div onclick="historyPage()">History</div>
-<div onclick="profile()">Profile</div>
-
-</nav>
+<div class="vip">VIP</div>
 
 </header>
 
-<div id="hero"></div>
 
-<div id="content"></div>
+<div class="tabs">
 
-<div id="detail"></div>
-
-<div id="player">
-
-<div class="player-controls">
-
-<button onclick="closePlayer()">Back</button>
-
-<select id="speed">
-<option value="1">1x</option>
-<option value="1.5">1.5x</option>
-<option value="2">2x</option>
-</select>
-
-<select id="subtitles"></select>
+<div class="tab active">Semua</div>
+<div class="tab">Radreel</div>
+<div class="tab">FlickReels</div>
 
 </div>
 
+
+<div id="grid" class="grid"></div>
+
+
+<div class="bottom">
+
+<div>🏠<br>Beranda</div>
+<div>🧭<br>Jelajahi</div>
+<div>⏱<br>Riwayat</div>
+<div>👤<br>Profil</div>
+
+</div>
+
+
+<div id="player" class="player">
 <video id="video" controls></video>
-
 </div>
 
-<script src="storage.js"></script>
-<script src="player.js"></script>
-<script src="app.js"></script>
+
+<script>
+
+const API="https://dracin-providers.vercel.app/api/v1/shortime/stream"
+
+load()
+
+async function load(){
+
+let res=await fetch(API+"/random?page=1&limit=30")
+
+let json=await res.json()
+
+let grid=document.getElementById("grid")
+
+json.data.forEach(d=>{
+
+let card=document.createElement("div")
+
+card.className="card"
+
+card.innerHTML=`
+
+<img src="${d.cover}">
+
+<div class="badge">HD EP</div>
+
+<div class="title">${d.title}</div>
+
+`
+
+card.onclick=()=>play(d.episodeId)
+
+grid.appendChild(card)
+
+})
+
+}
+
+async function play(id){
+
+let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android")
+
+let json=await res.json()
+
+let url=json.data.videoUrl
+
+let video=document.getElementById("video")
+
+document.getElementById("player").style.display="block"
+
+if(Hls.isSupported()){
+
+let hls=new Hls()
+
+hls.loadSource(url)
+
+hls.attachMedia(video)
+
+}else{
+
+video.src=url
+
+}
+
+video.play()
+
+}
+
+</script>
 
 </body>
 </html>
