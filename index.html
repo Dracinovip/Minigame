@@ -9,14 +9,12 @@
 
 <style>
 
-*{
-box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
 margin:0;
-background:#0b0b0b;
 font-family:Arial;
+background:#0b0b0b;
 color:white;
 }
 
@@ -26,18 +24,18 @@ header{
 position:fixed;
 top:0;
 width:100%;
-background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);
 padding:15px 30px;
-z-index:100;
+background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);
 display:flex;
 align-items:center;
-gap:30px;
+gap:20px;
+z-index:100;
 }
 
 .logo{
 font-size:22px;
 font-weight:bold;
-color:#ff3d3d;
+color:#ff2e2e;
 }
 
 nav{
@@ -55,6 +53,19 @@ nav div:hover{
 opacity:1;
 }
 
+/* search */
+
+.search{
+margin-left:auto;
+}
+
+.search input{
+background:#1c1c1c;
+border:none;
+padding:8px 12px;
+color:white;
+}
+
 /* hero */
 
 .hero{
@@ -69,21 +80,21 @@ height:100%;
 object-fit:cover;
 }
 
-.hero-content{
+.hero-text{
 position:absolute;
-bottom:50px;
-left:50px;
+bottom:60px;
+left:60px;
 }
 
-.hero-content h1{
+.hero-text h1{
 font-size:40px;
 margin:0;
 }
 
-.hero-content button{
+.hero-text button{
 margin-top:10px;
 padding:10px 20px;
-background:#ff3d3d;
+background:#ff2e2e;
 border:none;
 color:white;
 cursor:pointer;
@@ -147,7 +158,7 @@ object-fit:cover;
 }
 
 .detail-content{
-padding:20px 30px;
+padding:30px;
 }
 
 .episodes{
@@ -197,8 +208,15 @@ cursor:pointer;
 <body>
 
 <header>
+
 <div class="logo">DRAMA</div>
+
 <nav id="nav"></nav>
+
+<div class="search">
+<input id="search" placeholder="Search drama">
+</div>
+
 </header>
 
 <div id="hero"></div>
@@ -214,105 +232,120 @@ cursor:pointer;
 
 <script>
 
-const API="https://dracin-providers.vercel.app/api/v1/shortime/stream";
+const API="https://dracin-providers.vercel.app/api/v1/shortime/stream"
 
-loadNav();
-loadHero();
-loadSections();
+let currentEpisodes=[]
+let currentIndex=0
+
+loadNav()
+loadHero()
+loadSections()
 
 async function loadNav(){
 
-let res=await fetch(API+"/navigation");
-let json=await res.json();
+let res=await fetch(API+"/navigation")
+let json=await res.json()
 
-let nav=document.getElementById("nav");
+let nav=document.getElementById("nav")
 
 json.data.forEach(c=>{
-let d=document.createElement("div");
-d.innerText=c.name;
-nav.appendChild(d);
-});
+let d=document.createElement("div")
+d.innerText=c.name
+nav.appendChild(d)
+})
 
 }
 
 async function loadHero(){
 
-let res=await fetch(API+"/banner?page=1&limit=5");
-let json=await res.json();
+let res=await fetch(API+"/banner?page=1&limit=5")
+let json=await res.json()
 
-let b=json.data[0];
+let b=json.data[0]
 
 document.getElementById("hero").innerHTML=`
+
 <div class="hero">
+
 <img src="${b.landscapeImage}">
-<div class="hero-content">
+
+<div class="hero-text">
+
 <h1>Featured Drama</h1>
-<button onclick="openDetail(${b.contentsId})">Watch Now</button>
+
+<button onclick="openDetail(${b.contentsId})">
+Watch Now
+</button>
+
 </div>
+
 </div>
-`;
+
+`
 
 }
 
 async function loadSections(){
 
-createRow("Trending",API+"/theme?kind=trending");
-createRow("New Release",API+"/home/new-release?page=1&limit=20");
-createRow("Watching",API+"/home/watching?page=1&limit=20");
-createRow("Recommended",API+"/home/recommend?page=1&limit=20");
-createRow("Random",API+"/random?page=1&limit=20");
+createRow("Trending",API+"/theme?kind=trending")
+createRow("New Release",API+"/home/new-release?page=1&limit=20")
+createRow("Watching",API+"/home/watching?page=1&limit=20")
+createRow("Recommended",API+"/home/recommend?page=1&limit=20")
+createRow("Random",API+"/random?page=1&limit=20")
 
 }
 
 async function createRow(title,url){
 
-let content=document.getElementById("content");
+let content=document.getElementById("content")
 
-let section=document.createElement("div");
-section.className="section";
+let section=document.createElement("div")
+section.className="section"
 
 section.innerHTML=`
 <h2>${title}</h2>
 <div class="row"></div>
-`;
+`
 
-content.appendChild(section);
+content.appendChild(section)
 
-let row=section.querySelector(".row");
+let row=section.querySelector(".row")
 
-let res=await fetch(url);
-let json=await res.json();
+let res=await fetch(url)
+let json=await res.json()
 
 json.data.forEach(d=>{
 
-let card=document.createElement("div");
-card.className="card";
+let card=document.createElement("div")
+card.className="card"
 
 card.innerHTML=`
-<img src="${d.cover}">
+<img loading="lazy" src="${d.cover}">
 <div class="card-title">${d.title}</div>
-`;
+`
 
-card.onclick=()=>openDetail(d.id);
+card.onclick=()=>openDetail(d.id)
 
-row.appendChild(card);
+row.appendChild(card)
 
-});
+})
 
 }
 
 async function openDetail(id){
 
-let res=await fetch(API+"/contents/"+id);
-let json=await res.json();
+let res=await fetch(API+"/contents/"+id)
+let json=await res.json()
 
-let d=json.data;
+let d=json.data
 
-let detail=document.getElementById("detail");
+currentEpisodes=d.episodeList
 
-detail.style.display="block";
+let detail=document.getElementById("detail")
+detail.style.display="block"
 
 detail.innerHTML=`
+
 <img class="detail-banner" src="${d.landscapeImage}">
 
 <div class="detail-content">
@@ -326,44 +359,61 @@ detail.innerHTML=`
 <div class="episodes"></div>
 
 </div>
-`;
 
-let epBox=detail.querySelector(".episodes");
+`
 
-d.episodeList.forEach(ep=>{
+let epBox=detail.querySelector(".episodes")
 
-let div=document.createElement("div");
-div.className="ep";
-div.innerText=ep.title;
+d.episodeList.forEach((ep,i)=>{
 
-div.onclick=()=>playEpisode(ep.id);
+let div=document.createElement("div")
+div.className="ep"
+div.innerText=ep.title
 
-epBox.appendChild(div);
+div.onclick=()=>playEpisode(ep.id,i)
 
-});
+epBox.appendChild(div)
+
+})
 
 }
 
-async function playEpisode(id){
+async function playEpisode(id,index){
 
-let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android");
-let json=await res.json();
+currentIndex=index
 
-let url=json.data.videoUrl;
+let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android")
+let json=await res.json()
 
-let video=document.getElementById("video");
+let url=json.data.videoUrl
 
-document.getElementById("player").style.display="flex";
+let video=document.getElementById("video")
+
+document.getElementById("player").style.display="flex"
 
 if(Hls.isSupported()){
 
-let hls=new Hls();
-hls.loadSource(url);
-hls.attachMedia(video);
+let hls=new Hls()
+hls.loadSource(url)
+hls.attachMedia(video)
 
 }else{
 
-video.src=url;
+video.src=url
+
+}
+
+video.onended=autoNext
+
+}
+
+function autoNext(){
+
+currentIndex++
+
+if(currentEpisodes[currentIndex]){
+
+playEpisode(currentEpisodes[currentIndex].id,currentIndex)
 
 }
 
@@ -371,10 +421,10 @@ video.src=url;
 
 function closePlayer(){
 
-document.getElementById("player").style.display="none";
+document.getElementById("player").style.display="none"
 
-let v=document.getElementById("video");
-v.pause();
+let v=document.getElementById("video")
+v.pause()
 
 }
 
