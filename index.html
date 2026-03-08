@@ -4,6 +4,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>DracinaVIP</title>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -16,6 +17,8 @@ background:#0b0b0b;
 color:white;
 font-family:Arial;
 }
+
+/* HEADER */
 
 header{
 display:flex;
@@ -31,9 +34,11 @@ color:#ffd54a;
 
 .search{
 margin-left:auto;
-font-size:22px;
 cursor:pointer;
+font-size:22px;
 }
+
+/* GRID */
 
 .grid{
 display:grid;
@@ -46,7 +51,6 @@ padding:15px;
 background:#111;
 border-radius:15px;
 overflow:hidden;
-position:relative;
 cursor:pointer;
 }
 
@@ -56,36 +60,30 @@ height:220px;
 object-fit:cover;
 }
 
-.badge{
-position:absolute;
-top:10px;
-right:10px;
-background:black;
-border:1px solid gold;
-padding:3px 6px;
-border-radius:6px;
-font-size:12px;
-}
-
 .title{
 padding:8px;
 font-size:14px;
 }
 
-.bottom{
-position:fixed;
-bottom:0;
-width:100%;
-background:#111;
-display:flex;
-justify-content:space-around;
-padding:10px 0;
+/* DETAIL */
+
+.detail{
+padding:20px;
 }
 
-.bottom div{
-text-align:center;
-font-size:12px;
+.detail img{
+width:120px;
+border-radius:10px;
+}
+
+.play{
+background:#6aff00;
+padding:10px;
+margin-top:20px;
+border-radius:8px;
+display:inline-block;
 cursor:pointer;
+color:black;
 }
 
 /* PLAYER */
@@ -111,15 +109,22 @@ width:100%;
 height:100%;
 }
 
-.speed{
+.controls{
 position:absolute;
 top:10px;
-right:10px;
-background:black;
-padding:5px 10px;
+left:10px;
+display:flex;
+gap:10px;
+}
+
+.btn{
+background:rgba(0,0,0,.6);
+padding:6px 10px;
 border-radius:6px;
 cursor:pointer;
 }
+
+/* EPISODES */
 
 .episodes{
 background:#111;
@@ -131,10 +136,27 @@ gap:10px;
 
 .ep{
 background:#222;
-padding:8px 12px;
+padding:6px 10px;
 border-radius:6px;
 cursor:pointer;
-white-space:nowrap;
+}
+
+/* NAV */
+
+.bottom{
+position:fixed;
+bottom:0;
+width:100%;
+background:#111;
+display:flex;
+justify-content:space-around;
+padding:10px 0;
+}
+
+.bottom div{
+cursor:pointer;
+text-align:center;
+font-size:12px;
 }
 
 .page{
@@ -155,9 +177,13 @@ padding:20px;
 
 </header>
 
+
 <div id="home" class="grid"></div>
 
+<div id="detail" class="detail"></div>
+
 <div id="page" class="page"></div>
+
 
 <div class="bottom">
 
@@ -172,7 +198,12 @@ padding:20px;
 
 <div class="video-container">
 
-<div class="speed" onclick="toggleSpeed()">1x</div>
+<div class="controls">
+
+<div class="btn" onclick="closePlayer()">⬅</div>
+<div class="btn" onclick="toggleSpeed()">2x</div>
+
+</div>
 
 <video id="video" controls></video>
 
@@ -187,13 +218,13 @@ padding:20px;
 
 const API="https://dracin-providers.vercel.app/api/v1/shortime/stream"
 
-let currentEpisodes=[]
-let currentIndex=0
+let episodes=[]
+let index=0
 let speed=1
 
-load()
+loadHome()
 
-async function load(){
+async function loadHome(){
 
 let res=await fetch(API+"/random?page=1&limit=30")
 let json=await res.json()
@@ -211,7 +242,6 @@ card.className="card"
 card.innerHTML=`
 
 <img src="${d.cover}">
-<div class="badge">HD EP</div>
 <div class="title">${d.title}</div>
 
 `
@@ -224,44 +254,48 @@ grid.appendChild(card)
 
 }
 
+/* DETAIL PAGE */
+
 async function openDetail(id){
 
 let res=await fetch(API+"/contents/"+id)
-
 let json=await res.json()
 
 let d=json.data
 
-currentEpisodes=d.episodeList
+episodes=d.episodeList
 
-let epBox=document.getElementById("episodes")
+let box=document.getElementById("detail")
 
-epBox.innerHTML=""
+box.innerHTML=`
 
-d.episodeList.forEach((ep,i)=>{
+<h2>${d.title}</h2>
 
-let div=document.createElement("div")
+<img src="${d.cover}">
 
-div.className="ep"
+<p>${d.summary}</p>
 
-div.innerText=ep.title
+<div class="play" onclick="start()">▶ Tonton Sekarang</div>
 
-div.onclick=()=>play(ep.id,i)
-
-epBox.appendChild(div)
-
-})
-
-play(d.episodeList[0].id,0)
+`
 
 }
 
-async function play(id,index){
+/* START PLAYER */
 
-currentIndex=index
+function start(){
+
+play(episodes[0].id,0)
+
+}
+
+/* PLAYER */
+
+async function play(id,i){
+
+index=i
 
 let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android")
-
 let json=await res.json()
 
 let url=json.data.videoUrl
@@ -286,23 +320,55 @@ video.src=url
 
 video.play()
 
-saveHistory(currentEpisodes[index].title)
+saveHistory(episodes[i].title)
 
 video.onended=nextEpisode
+
+loadEpisodes()
+
+}
+
+function loadEpisodes(){
+
+let box=document.getElementById("episodes")
+
+box.innerHTML=""
+
+episodes.forEach((ep,i)=>{
+
+let div=document.createElement("div")
+
+div.className="ep"
+
+div.innerText=ep.title
+
+div.onclick=()=>play(ep.id,i)
+
+box.appendChild(div)
+
+})
 
 }
 
 function nextEpisode(){
 
-currentIndex++
+index++
 
-if(currentEpisodes[currentIndex]){
+if(episodes[index]){
 
-play(currentEpisodes[currentIndex].id,currentIndex)
+play(episodes[index].id,index)
+
+}
 
 }
 
+function closePlayer(){
+
+document.getElementById("player").style.display="none"
+
 }
+
+/* SPEED */
 
 function toggleSpeed(){
 
@@ -311,8 +377,6 @@ let video=document.getElementById("video")
 speed=speed===1?2:1
 
 video.playbackRate=speed
-
-document.querySelector(".speed").innerText=speed+"x"
 
 }
 
@@ -331,22 +395,20 @@ search(q)
 async function search(q){
 
 let res=await fetch(API+"/random?page=1&limit=50")
-
 let json=await res.json()
-
-let results=json.data.filter(d=>d.title.toLowerCase().includes(q.toLowerCase()))
 
 let page=document.getElementById("page")
 
-page.innerHTML="<h2>Search Result</h2>"
+page.innerHTML="<h2>Search</h2>"
 
-results.forEach(r=>{
+json.data.filter(d=>d.title.toLowerCase().includes(q.toLowerCase()))
+.forEach(d=>{
 
 let div=document.createElement("div")
 
-div.innerText=r.title
+div.innerText=d.title
 
-div.onclick=()=>openDetail(r.id)
+div.onclick=()=>openDetail(d.id)
 
 page.appendChild(div)
 
@@ -372,7 +434,7 @@ let h=JSON.parse(localStorage.getItem("history")||"[]")
 
 let page=document.getElementById("page")
 
-page.innerHTML="<h2>Riwayat Nonton</h2>"
+page.innerHTML="<h2>Riwayat</h2>"
 
 h.forEach(i=>{
 
@@ -396,9 +458,9 @@ page.innerHTML=`
 
 <h2>Profil</h2>
 
-<p>Guest User</p>
+<p>User: Guest</p>
 
-<p>Total History: ${JSON.parse(localStorage.getItem("history")||"[]").length}</p>
+<p>Total Riwayat: ${JSON.parse(localStorage.getItem("history")||"[]").length}</p>
 
 `
 
@@ -407,8 +469,9 @@ page.innerHTML=`
 function goHome(){
 
 document.getElementById("page").innerHTML=""
+document.getElementById("detail").innerHTML=""
 
-load()
+loadHome()
 
 }
 
