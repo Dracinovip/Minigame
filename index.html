@@ -4,8 +4,9 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-
 <title>DracinaVIP</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
 
@@ -20,7 +21,6 @@ header{
 display:flex;
 align-items:center;
 padding:15px;
-gap:10px;
 }
 
 .logo{
@@ -31,31 +31,8 @@ color:#ffd54a;
 
 .search{
 margin-left:auto;
-font-size:20px;
-}
-
-.vip{
-border:2px solid #ffd54a;
-border-radius:50px;
-padding:5px 10px;
-font-size:12px;
-}
-
-.tabs{
-display:flex;
-gap:10px;
-padding:10px;
-}
-
-.tab{
-padding:8px 15px;
-border-radius:20px;
-background:#1c1c1c;
-}
-
-.tab.active{
-background:#ffd54a;
-color:black;
+font-size:22px;
+cursor:pointer;
 }
 
 .grid{
@@ -70,6 +47,7 @@ background:#111;
 border-radius:15px;
 overflow:hidden;
 position:relative;
+cursor:pointer;
 }
 
 .card img{
@@ -83,10 +61,10 @@ position:absolute;
 top:10px;
 right:10px;
 background:black;
-padding:3px 6px;
-font-size:12px;
-border-radius:6px;
 border:1px solid gold;
+padding:3px 6px;
+border-radius:6px;
+font-size:12px;
 }
 
 .title{
@@ -107,7 +85,10 @@ padding:10px 0;
 .bottom div{
 text-align:center;
 font-size:12px;
+cursor:pointer;
 }
+
+/* PLAYER */
 
 .player{
 position:fixed;
@@ -117,6 +98,12 @@ width:100%;
 height:100%;
 background:black;
 display:none;
+flex-direction:column;
+}
+
+.video-container{
+flex:1;
+position:relative;
 }
 
 video{
@@ -124,9 +111,37 @@ width:100%;
 height:100%;
 }
 
-</style>
+.speed{
+position:absolute;
+top:10px;
+right:10px;
+background:black;
+padding:5px 10px;
+border-radius:6px;
+cursor:pointer;
+}
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+.episodes{
+background:#111;
+padding:10px;
+display:flex;
+overflow-x:auto;
+gap:10px;
+}
+
+.ep{
+background:#222;
+padding:8px 12px;
+border-radius:6px;
+cursor:pointer;
+white-space:nowrap;
+}
+
+.page{
+padding:20px;
+}
+
+</style>
 
 </head>
 
@@ -134,39 +149,37 @@ height:100%;
 
 <header>
 
-<div class="logo">DRACINA<span style="color:white">VIP</span></div>
+<div class="logo">DRACINAVIP</div>
 
-<div class="search">🔍</div>
-
-<div class="vip">VIP</div>
+<div class="search" onclick="openSearch()">🔍</div>
 
 </header>
 
+<div id="home" class="grid"></div>
 
-<div class="tabs">
-
-<div class="tab active">Semua</div>
-<div class="tab">Radreel</div>
-<div class="tab">FlickReels</div>
-
-</div>
-
-
-<div id="grid" class="grid"></div>
-
+<div id="page" class="page"></div>
 
 <div class="bottom">
 
-<div>🏠<br>Beranda</div>
-<div>🧭<br>Jelajahi</div>
-<div>⏱<br>Riwayat</div>
-<div>👤<br>Profil</div>
+<div onclick="goHome()">🏠<br>Beranda</div>
+<div onclick="openHistory()">⏱<br>Riwayat</div>
+<div onclick="openProfile()">👤<br>Profil</div>
 
 </div>
 
 
 <div id="player" class="player">
+
+<div class="video-container">
+
+<div class="speed" onclick="toggleSpeed()">1x</div>
+
 <video id="video" controls></video>
+
+</div>
+
+<div id="episodes" class="episodes"></div>
+
 </div>
 
 
@@ -174,15 +187,20 @@ height:100%;
 
 const API="https://dracin-providers.vercel.app/api/v1/shortime/stream"
 
+let currentEpisodes=[]
+let currentIndex=0
+let speed=1
+
 load()
 
 async function load(){
 
 let res=await fetch(API+"/random?page=1&limit=30")
-
 let json=await res.json()
 
-let grid=document.getElementById("grid")
+let grid=document.getElementById("home")
+
+grid.innerHTML=""
 
 json.data.forEach(d=>{
 
@@ -193,14 +211,12 @@ card.className="card"
 card.innerHTML=`
 
 <img src="${d.cover}">
-
 <div class="badge">HD EP</div>
-
 <div class="title">${d.title}</div>
 
 `
 
-card.onclick=()=>play(d.episodeId)
+card.onclick=()=>openDetail(d.id)
 
 grid.appendChild(card)
 
@@ -208,7 +224,41 @@ grid.appendChild(card)
 
 }
 
-async function play(id){
+async function openDetail(id){
+
+let res=await fetch(API+"/contents/"+id)
+
+let json=await res.json()
+
+let d=json.data
+
+currentEpisodes=d.episodeList
+
+let epBox=document.getElementById("episodes")
+
+epBox.innerHTML=""
+
+d.episodeList.forEach((ep,i)=>{
+
+let div=document.createElement("div")
+
+div.className="ep"
+
+div.innerText=ep.title
+
+div.onclick=()=>play(ep.id,i)
+
+epBox.appendChild(div)
+
+})
+
+play(d.episodeList[0].id,0)
+
+}
+
+async function play(id,index){
+
+currentIndex=index
 
 let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android")
 
@@ -218,7 +268,7 @@ let url=json.data.videoUrl
 
 let video=document.getElementById("video")
 
-document.getElementById("player").style.display="block"
+document.getElementById("player").style.display="flex"
 
 if(Hls.isSupported()){
 
@@ -235,6 +285,130 @@ video.src=url
 }
 
 video.play()
+
+saveHistory(currentEpisodes[index].title)
+
+video.onended=nextEpisode
+
+}
+
+function nextEpisode(){
+
+currentIndex++
+
+if(currentEpisodes[currentIndex]){
+
+play(currentEpisodes[currentIndex].id,currentIndex)
+
+}
+
+}
+
+function toggleSpeed(){
+
+let video=document.getElementById("video")
+
+speed=speed===1?2:1
+
+video.playbackRate=speed
+
+document.querySelector(".speed").innerText=speed+"x"
+
+}
+
+/* SEARCH */
+
+function openSearch(){
+
+let q=prompt("Cari drama")
+
+if(!q)return
+
+search(q)
+
+}
+
+async function search(q){
+
+let res=await fetch(API+"/random?page=1&limit=50")
+
+let json=await res.json()
+
+let results=json.data.filter(d=>d.title.toLowerCase().includes(q.toLowerCase()))
+
+let page=document.getElementById("page")
+
+page.innerHTML="<h2>Search Result</h2>"
+
+results.forEach(r=>{
+
+let div=document.createElement("div")
+
+div.innerText=r.title
+
+div.onclick=()=>openDetail(r.id)
+
+page.appendChild(div)
+
+})
+
+}
+
+/* HISTORY */
+
+function saveHistory(title){
+
+let h=JSON.parse(localStorage.getItem("history")||"[]")
+
+h.unshift(title)
+
+localStorage.setItem("history",JSON.stringify(h.slice(0,20)))
+
+}
+
+function openHistory(){
+
+let h=JSON.parse(localStorage.getItem("history")||"[]")
+
+let page=document.getElementById("page")
+
+page.innerHTML="<h2>Riwayat Nonton</h2>"
+
+h.forEach(i=>{
+
+let div=document.createElement("div")
+
+div.innerText=i
+
+page.appendChild(div)
+
+})
+
+}
+
+/* PROFILE */
+
+function openProfile(){
+
+let page=document.getElementById("page")
+
+page.innerHTML=`
+
+<h2>Profil</h2>
+
+<p>Guest User</p>
+
+<p>Total History: ${JSON.parse(localStorage.getItem("history")||"[]").length}</p>
+
+`
+
+}
+
+function goHome(){
+
+document.getElementById("page").innerHTML=""
+
+load()
 
 }
 
