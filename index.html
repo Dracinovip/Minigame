@@ -1,221 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
-<title>Drama Premium</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DracinaVIP</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="stylesheet" href="style.css">
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-<style>
-
-*{box-sizing:border-box}
-
-body{
-margin:0;
-font-family:Arial;
-background:#0b0b0b;
-color:white;
-}
-
-/* header */
-
-header{
-position:fixed;
-top:0;
-width:100%;
-padding:15px 30px;
-background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);
-display:flex;
-align-items:center;
-gap:20px;
-z-index:100;
-}
-
-.logo{
-font-size:22px;
-font-weight:bold;
-color:#ff2e2e;
-}
-
-nav{
-display:flex;
-gap:15px;
-overflow:auto;
-}
-
-nav div{
-cursor:pointer;
-opacity:.8;
-}
-
-nav div:hover{
-opacity:1;
-}
-
-/* search */
-
-.search{
-margin-left:auto;
-}
-
-.search input{
-background:#1c1c1c;
-border:none;
-padding:8px 12px;
-color:white;
-}
-
-/* hero */
-
-.hero{
-height:70vh;
-position:relative;
-overflow:hidden;
-}
-
-.hero img{
-width:100%;
-height:100%;
-object-fit:cover;
-}
-
-.hero-text{
-position:absolute;
-bottom:60px;
-left:60px;
-}
-
-.hero-text h1{
-font-size:40px;
-margin:0;
-}
-
-.hero-text button{
-margin-top:10px;
-padding:10px 20px;
-background:#ff2e2e;
-border:none;
-color:white;
-cursor:pointer;
-}
-
-/* sections */
-
-.section{
-padding:20px 30px;
-}
-
-.row{
-display:flex;
-overflow-x:auto;
-gap:12px;
-padding-bottom:10px;
-}
-
-.card{
-min-width:150px;
-background:#1c1c1c;
-border-radius:6px;
-overflow:hidden;
-cursor:pointer;
-transition:.3s;
-}
-
-.card:hover{
-transform:scale(1.1);
-}
-
-.card img{
-width:100%;
-height:210px;
-object-fit:cover;
-}
-
-.card-title{
-padding:6px;
-font-size:13px;
-}
-
-/* detail */
-
-.detail{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:#0b0b0b;
-overflow:auto;
-z-index:200;
-display:none;
-}
-
-.detail-banner{
-width:100%;
-height:50vh;
-object-fit:cover;
-}
-
-.detail-content{
-padding:30px;
-}
-
-.episodes{
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
-gap:10px;
-margin-top:20px;
-}
-
-.ep{
-background:#1c1c1c;
-padding:10px;
-cursor:pointer;
-}
-
-/* player */
-
-.player{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:black;
-display:none;
-flex-direction:column;
-z-index:300;
-}
-
-video{
-width:100%;
-height:100%;
-}
-
-.back{
-position:absolute;
-top:20px;
-left:20px;
-background:black;
-padding:8px 12px;
-cursor:pointer;
-}
-
-</style>
 </head>
 
 <body>
 
 <header>
 
-<div class="logo">DRAMA</div>
+<div class="logo">DRACINAVIP</div>
 
-<nav id="nav"></nav>
+<nav>
 
-<div class="search">
-<input id="search" placeholder="Search drama">
-</div>
+<div onclick="home()">Home</div>
+<div onclick="explore()">Explore</div>
+<div onclick="openSearch()">Search</div>
+<div onclick="historyPage()">History</div>
+<div onclick="profile()">Profile</div>
+
+</nav>
 
 </header>
 
@@ -223,212 +34,31 @@ cursor:pointer;
 
 <div id="content"></div>
 
-<div class="detail" id="detail"></div>
+<div id="detail"></div>
 
-<div class="player" id="player">
-<div class="back" onclick="closePlayer()">Back</div>
+<div id="player">
+
+<div class="player-controls">
+
+<button onclick="closePlayer()">Back</button>
+
+<select id="speed">
+<option value="1">1x</option>
+<option value="1.5">1.5x</option>
+<option value="2">2x</option>
+</select>
+
+<select id="subtitles"></select>
+
+</div>
+
 <video id="video" controls></video>
-</div>
-
-<script>
-
-const API="https://dracin-providers.vercel.app/api/v1/shortime/stream"
-
-let currentEpisodes=[]
-let currentIndex=0
-
-loadNav()
-loadHero()
-loadSections()
-
-async function loadNav(){
-
-let res=await fetch(API+"/navigation")
-let json=await res.json()
-
-let nav=document.getElementById("nav")
-
-json.data.forEach(c=>{
-let d=document.createElement("div")
-d.innerText=c.name
-nav.appendChild(d)
-})
-
-}
-
-async function loadHero(){
-
-let res=await fetch(API+"/banner?page=1&limit=5")
-let json=await res.json()
-
-let b=json.data[0]
-
-document.getElementById("hero").innerHTML=`
-
-<div class="hero">
-
-<img src="${b.landscapeImage}">
-
-<div class="hero-text">
-
-<h1>Featured Drama</h1>
-
-<button onclick="openDetail(${b.contentsId})">
-Watch Now
-</button>
 
 </div>
 
-</div>
-
-`
-
-}
-
-async function loadSections(){
-
-createRow("Trending",API+"/theme?kind=trending")
-createRow("New Release",API+"/home/new-release?page=1&limit=20")
-createRow("Watching",API+"/home/watching?page=1&limit=20")
-createRow("Recommended",API+"/home/recommend?page=1&limit=20")
-createRow("Random",API+"/random?page=1&limit=20")
-
-}
-
-async function createRow(title,url){
-
-let content=document.getElementById("content")
-
-let section=document.createElement("div")
-section.className="section"
-
-section.innerHTML=`
-<h2>${title}</h2>
-<div class="row"></div>
-`
-
-content.appendChild(section)
-
-let row=section.querySelector(".row")
-
-let res=await fetch(url)
-let json=await res.json()
-
-json.data.forEach(d=>{
-
-let card=document.createElement("div")
-card.className="card"
-
-card.innerHTML=`
-<img loading="lazy" src="${d.cover}">
-<div class="card-title">${d.title}</div>
-`
-
-card.onclick=()=>openDetail(d.id)
-
-row.appendChild(card)
-
-})
-
-}
-
-async function openDetail(id){
-
-let res=await fetch(API+"/contents/"+id)
-let json=await res.json()
-
-let d=json.data
-
-currentEpisodes=d.episodeList
-
-let detail=document.getElementById("detail")
-detail.style.display="block"
-
-detail.innerHTML=`
-
-<img class="detail-banner" src="${d.landscapeImage}">
-
-<div class="detail-content">
-
-<h1>${d.title}</h1>
-
-<p>${d.summary}</p>
-
-<h3>Episodes</h3>
-
-<div class="episodes"></div>
-
-</div>
-
-`
-
-let epBox=detail.querySelector(".episodes")
-
-d.episodeList.forEach((ep,i)=>{
-
-let div=document.createElement("div")
-div.className="ep"
-div.innerText=ep.title
-
-div.onclick=()=>playEpisode(ep.id,i)
-
-epBox.appendChild(div)
-
-})
-
-}
-
-async function playEpisode(id,index){
-
-currentIndex=index
-
-let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android")
-let json=await res.json()
-
-let url=json.data.videoUrl
-
-let video=document.getElementById("video")
-
-document.getElementById("player").style.display="flex"
-
-if(Hls.isSupported()){
-
-let hls=new Hls()
-hls.loadSource(url)
-hls.attachMedia(video)
-
-}else{
-
-video.src=url
-
-}
-
-video.onended=autoNext
-
-}
-
-function autoNext(){
-
-currentIndex++
-
-if(currentEpisodes[currentIndex]){
-
-playEpisode(currentEpisodes[currentIndex].id,currentIndex)
-
-}
-
-}
-
-function closePlayer(){
-
-document.getElementById("player").style.display="none"
-
-let v=document.getElementById("video")
-v.pause()
-
-}
-
-</script>
+<script src="storage.js"></script>
+<script src="player.js"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
