@@ -1,157 +1,292 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Tap Tap Telegram</title>
-    
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <style>
-        /* Desain ngikutin Tema Telegram otomatis */
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: var(--tg-theme-bg-color, #1e1e1e);
-            color: var(--tg-theme-text-color, #ffffff);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<title>Drama Stream</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-        .stats {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-        #game-area {
-            margin: 40px 0;
-            height: 120px; /* Jaga ukuran biar gak lompat-lompat */
-        }
+<style>
 
-        #target {
-            width: 100px;
-            height: 100px;
-            background-color: #ff4757;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            user-select: none; /* Biar teks gak ke-block pas di-tap cepet */
-            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
-            transition: transform 0.05s;
-            margin: 0 auto;
-        }
+body{
+margin:0;
+font-family:Arial;
+background:#0f0f0f;
+color:white;
+}
 
-        #target:active {
-            transform: scale(0.9);
-        }
+header{
+background:#141414;
+padding:15px;
+font-size:22px;
+font-weight:bold;
+}
 
-        button.action-btn {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            background-color: var(--tg-theme-button-color, #3390ec);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-    </style>
+nav{
+display:flex;
+gap:15px;
+padding:10px;
+overflow:auto;
+background:#1a1a1a;
+}
+
+nav div{
+cursor:pointer;
+white-space:nowrap;
+}
+
+.section{
+padding:20px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+gap:15px;
+}
+
+.card{
+background:#1c1c1c;
+border-radius:8px;
+overflow:hidden;
+cursor:pointer;
+}
+
+.card img{
+width:100%;
+height:200px;
+object-fit:cover;
+}
+
+.title{
+padding:8px;
+font-size:14px;
+}
+
+.banner{
+width:100%;
+height:250px;
+object-fit:cover;
+cursor:pointer;
+}
+
+.player{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+display:none;
+flex-direction:column;
+z-index:999;
+}
+
+video{
+width:100%;
+height:80%;
+}
+
+.back{
+padding:10px;
+background:#111;
+cursor:pointer;
+}
+
+.detail{
+padding:20px;
+}
+
+.episodes{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+gap:10px;
+}
+
+.ep{
+background:#1c1c1c;
+padding:10px;
+cursor:pointer;
+}
+
+</style>
 </head>
+
 <body>
 
-    <h1>Tap Tap Ngebut! 🚀</h1>
-    <div class="stats">Skor: <span id="score">0</span></div>
-    <div class="stats">Waktu: <span id="time">10</span>s</div>
+<header>DRAMA STREAM</header>
 
-    <div id="game-area">
-        <div id="target" onclick="clickTarget()" style="pointer-events: none; opacity: 0.5;">TAP!</div>
-    </div>
+<nav id="nav"></nav>
 
-    <button id="start-btn" class="action-btn" onclick="startGame()">Mulai Game</button>
+<div id="home"></div>
 
-    <script>
-        // Inisialisasi Telegram Web App Object
-        let tg = window.Telegram.WebApp;
-        tg.expand(); // Bikin tampilannya full screen nutupin layar chat
+<div id="detail"></div>
 
-        let score = 0;
-        let timeLeft = 10;
-        let timerInterval;
-        let isPlaying = false;
+<div class="player" id="player">
+<div class="back" onclick="closePlayer()">⬅ Back</div>
+<video id="video" controls></video>
+</div>
 
-        const scoreDisplay = document.getElementById("score");
-        const timeDisplay = document.getElementById("time");
-        const startBtn = document.getElementById("start-btn");
-        const targetBtn = document.getElementById("target");
+<script>
 
-        function startGame() {
-            score = 0;
-            timeLeft = 10;
-            isPlaying = true;
-            
-            scoreDisplay.innerText = score;
-            timeDisplay.innerText = timeLeft;
-            
-            startBtn.style.display = "none"; // Sembunyiin tombol mulai
-            targetBtn.style.pointerEvents = "auto"; // Aktifin tombol TAP
-            targetBtn.style.opacity = "1";
+const API="https://dracin-providers.vercel.app/api/v1/shortime/stream";
 
-            // Hitung mundur timer
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timeDisplay.innerText = timeLeft;
+loadHome();
+loadNav();
 
-                if (timeLeft <= 0) {
-                    endGame();
-                }
-            }, 1000);
-        }
+async function loadNav(){
 
-        function clickTarget() {
-            if (!isPlaying) return;
-            score++;
-            scoreDisplay.innerText = score;
-            
-            // Bikin tombolnya gerak-gerak dikit biar agak nantang
-            const randomX = Math.floor(Math.random() * 40) - 20;
-            const randomY = Math.floor(Math.random() * 40) - 20;
-            targetBtn.style.transform = `translate(${randomX}px, ${randomY}px) scale(0.9)`;
-            
-            setTimeout(() => {
-                targetBtn.style.transform = `translate(${randomX}px, ${randomY}px) scale(1)`;
-            }, 50);
+let res=await fetch(API+"/navigation");
+let json=await res.json();
 
-            // Fitur khusus Telegram: Kasih getaran ke HP pas tombol ditekan
-            if (tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
+let nav=document.getElementById("nav");
 
-        function endGame() {
-            clearInterval(timerInterval);
-            isPlaying = false;
-            
-            startBtn.style.display = "inline-block";
-            startBtn.innerText = "Main Lagi";
-            targetBtn.style.pointerEvents = "none";
-            targetBtn.style.opacity = "0.5";
-            targetBtn.style.transform = `translate(0px, 0px)`;
-            
-            // Pop-up alert khas Telegram
-            tg.showAlert(`Waktu Habis! Skor lu: ${score} 🔥`);
-        }
-    </script>
+json.data.forEach(c=>{
+let d=document.createElement("div");
+d.innerText=c.name;
+nav.appendChild(d);
+});
+
+}
+
+async function loadHome(){
+
+let home=document.getElementById("home");
+home.innerHTML="";
+
+let banner=await fetch(API+"/banner?page=1&limit=5").then(r=>r.json());
+
+banner.data.forEach(b=>{
+let img=document.createElement("img");
+img.src=b.landscapeImage;
+img.className="banner";
+img.onclick=()=>openDetail(b.contentsId);
+home.appendChild(img);
+});
+
+createSection("Trending",API+"/theme?kind=trending");
+createSection("New Release",API+"/home/new-release?page=1&limit=10");
+createSection("Watching",API+"/home/watching?page=1&limit=10");
+createSection("Recommended",API+"/home/recommend?page=1&limit=10");
+createSection("Random",API+"/random?page=1&limit=10");
+
+}
+
+async function createSection(title,url){
+
+let home=document.getElementById("home");
+
+let section=document.createElement("div");
+section.className="section";
+
+section.innerHTML="<h2>"+title+"</h2><div class='grid'></div>";
+
+home.appendChild(section);
+
+let grid=section.querySelector(".grid");
+
+let res=await fetch(url);
+let json=await res.json();
+
+let list=json.data;
+
+list.forEach(item=>{
+
+let card=document.createElement("div");
+card.className="card";
+
+card.innerHTML=`
+<img src="${item.cover}">
+<div class="title">${item.title}</div>
+`;
+
+card.onclick=()=>openDetail(item.id);
+
+grid.appendChild(card);
+
+});
+
+}
+
+async function openDetail(id){
+
+let res=await fetch(API+"/contents/"+id);
+let json=await res.json();
+let d=json.data;
+
+let detail=document.getElementById("detail");
+let home=document.getElementById("home");
+
+home.style.display="none";
+
+detail.innerHTML=`
+<div class="detail">
+
+<img src="${d.landscapeImage}" style="width:100%">
+
+<h2>${d.title}</h2>
+
+<p>${d.summary}</p>
+
+<h3>Episodes</h3>
+
+<div class="episodes"></div>
+
+</div>
+`;
+
+let epContainer=detail.querySelector(".episodes");
+
+d.episodeList.forEach(ep=>{
+
+let div=document.createElement("div");
+div.className="ep";
+div.innerText=ep.title;
+
+div.onclick=()=>playEpisode(ep.id);
+
+epContainer.appendChild(div);
+
+});
+
+}
+
+async function playEpisode(id){
+
+let res=await fetch(API+"/episodes/"+id+"/video-url?platform=android");
+let json=await res.json();
+
+let url=json.data.videoUrl;
+
+let video=document.getElementById("video");
+
+document.getElementById("player").style.display="flex";
+
+if(Hls.isSupported()){
+
+let hls=new Hls();
+hls.loadSource(url);
+hls.attachMedia(video);
+
+}else{
+
+video.src=url;
+
+}
+
+}
+
+function closePlayer(){
+
+document.getElementById("player").style.display="none";
+
+let video=document.getElementById("video");
+video.pause();
+
+}
+
+</script>
+
 </body>
 </html>
